@@ -1,54 +1,46 @@
- <!DOCTYPE html>
-<html lang="en">
+  <!DOCTYPE html>
+<html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📚 Flashcard Quiz App - HorizonTechX</title>
+    <title>📇 Flashcard Quiz App - HorizonTechX</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>📚 Flashcard Quiz</h1>
+            <h1>📇 Flashcard Quiz App</h1>
             <p>HorizonTechX - Learn & Master</p>
         </div>
         
         <div class="tabs">
             <button class="tab-btn active" data-tab="study">📖 Study</button>
             <button class="tab-btn" data-tab="add">➕ Add Card</button>
-            <button class="tab-btn" data-tab="manage">📋 Manage</button>
+            <button class="tab-btn" data-tab="manage">⚙️ Manage</button>
         </div>
         
         <div class="tab-content active" id="study">
-            <div id="studyContent">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📝</div>
-                    <p>No flashcards yet. Create one in "Add Card" tab!</p>
-                </div>
-            </div>
+            <div id="studyContent"></div>
         </div>
         
         <div class="tab-content" id="add">
+            <h3>➕ Add New Card</h3>
             <form id="addForm">
                 <div class="form-group">
-                    <label for="question">❓ Question / Term</label>
+                    <label>Question / Term</label>
                     <textarea id="question" placeholder="Enter your question..." required></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="answer">✅ Answer / Definition</label>
+                    <label>Answer / Definition</label>
                     <textarea id="answer" placeholder="Enter the answer..." required></textarea>
                 </div>
-                <button type="submit" class="btn-submit">Add Flashcard</button>
+                <button type="submit" class="btn btn-primary">Add Flashcard</button>
             </form>
         </div>
         
         <div class="tab-content" id="manage">
-            <div id="manageContent">
-                <div class="empty-state">
-                    <div class="empty-state-icon">📋</div>
-                    <p>No flashcards to manage yet.</p>
-                </div>
-            </div>
+            <h3>⚙️ Manage Cards</h3>
+            <div id="manageContent"></div>
         </div>
     </div>
     
