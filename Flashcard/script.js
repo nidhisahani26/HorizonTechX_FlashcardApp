@@ -1,199 +1,182 @@
-let allCards = [];
+  let flashcards = [];
 let currentIndex = 0;
-let isFlipped = false;
+let favorites = [];
 
 window.addEventListener('load', function() {
-    setupEventListeners();
     loadFromStorage();
-    renderStudyView();
+    setupEventListeners();
+    renderStudy();
 });
 
 function setupEventListeners() {
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            switchTab(e.target.dataset.tab);
-        });
-    });
+    document.getElementById('addForm').addEventListener('submit', addCard);
     
-    document.getElementById('addForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        addCard();
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
     });
 }
 
-function addCard() {
-    const questionInput = document.getElementById('question');
-    const answerInput = document.getElementById('answer');
+function addCard(e) {
+    e.preventDefault();
+    const question = document.getElementById('question').value.trim();
+    const answer = document.getElementById('answer').value.trim();
     
-    const question = questionInput.value.trim();
-    const answer = answerInput.value.trim();
-    
-    if (!question || !answer) {
-        alert('❌ Please fill in both fields!');
+    if(!question || !answer) {
+        alert('❌ Please fill all fields!');
         return;
     }
     
-    const newCard = {
+    flashcards.push({
         id: Date.now(),
-        question: question,
-        answer: answer,
-        createdAt: new Date().toLocaleDateString()
-    };
+        question,
+        answer,
+        createdDate: new Date().toLocaleDateString()
+    });
     
-    allCards.push(newCard);
     saveToStorage();
-    
-    alert(`✅ Card added! Total: ${allCards.length}`);
-    
-    questionInput.value = '';
-    answerInput.value = '';
-    questionInput.focus();
-    
-    renderStudyView();
-    renderManageView();
+    document.getElementById('addForm').reset();
+    alert('✅ Card added successfully!');
+    switchTab('study');
+    renderStudy();
 }
 
-function deleteCard(id) {
-    if (confirm('🗑️ Delete this card?')) {
-        allCards = allCards.filter(card => card.id !== id);
+function renderStudy() {
+    const study = document.getElementById('studyContent');
+    
+    if(flashcards.length === 0) {
+        study.innerHTML = '<div class="empty-state">📚 No cards yet. Add one to get started!</div>';
+        return;
+    }
+    
+    const card = flashcards[currentIndex];
+    const isFav = favorites.includes(card.id);
+    
+    study.innerHTML = `
+        <div class="card" onclick="toggleFlip(this)">
+            <div class="card-front">
+                <p style="font-size:14px; margin-bottom: 10px;">❓ QUESTION</p>
+                <p style="font-size:20px; font-weight:bold;">${card.question}</p>
+            </div>
+            <div class="card-back" style="display:none;">
+                <p style="font-size:14px; margin-bottom: 10px;">✅ ANSWER</p>
+                <p style="font-size:20px; font-weight:bold;">${card.answer}</p>
+            </div>
+        </div>
         
-        if (currentIndex >= allCards.length && allCards.length > 0) {
-            currentIndex = allCards.length - 1;
-        }
+        <button onclick="toggleCardFavorite(${card.id})" style="width:100%; background: ${isFav ? '#e74c3c' : '#95a5a6'}; color:white; padding:12px; border:none; border-radius:5px; cursor:pointer; margin-bottom:15px; font-weight:600; transition: all 0.3s;">
+            ${isFav ? '❤️ Favorited' : '🤍 Favorite'}
+        </button>
         
-        saveToStorage();
-        alert('🗑️ Card deleted!');
-        renderStudyView();
-        renderManageView();
+        <div class="counter">${currentIndex + 1} / ${flashcards.length}</div>
+        
+        <div class="nav-buttons">
+            <button onclick="previousCard()" class="btn btn-secondary" ${currentIndex === 0 ? 'disabled' : ''}>← Previous</button>
+            <button onclick="nextCard()" class="btn btn-secondary" ${currentIndex === flashcards.length - 1 ? 'disabled' : ''}>Next →</button>
+        </div>
+    `;
+}
+
+function toggleFlip(el) {
+    const front = el.querySelector('.card-front');
+    const back = el.querySelector('.card-back');
+    
+    if(!front || !back) return;
+    
+    if(front.style.display === 'none') {
+        front.style.display = 'block';
+        back.style.display = 'none';
+    } else {
+        front.style.display = 'none';
+        back.style.display = 'block';
     }
 }
 
 function nextCard() {
-    if (currentIndex < allCards.length - 1) {
+    if(currentIndex < flashcards.length - 1) {
         currentIndex++;
-        isFlipped = false;
-        renderStudyView();
+        renderStudy();
     }
 }
 
 function previousCard() {
-    if (currentIndex > 0) {
+    if(currentIndex > 0) {
         currentIndex--;
-        isFlipped = false;
-        renderStudyView();
+        renderStudy();
     }
 }
 
-function flipCard() {
-    isFlipped = !isFlipped;
-    renderStudyView();
+function toggleCardFavorite(id) {
+    if(favorites.includes(id)) {
+        favorites = favorites.filter(fav => fav !== id);
+    } else {
+        favorites.push(id);
+    }
+    saveToStorage();
+    renderStudy();
 }
 
-function renderStudyView() {
-    const studyContent = document.getElementById('studyContent');
+function renderManage() {
+    const manage = document.getElementById('manageContent');
     
-    if (allCards.length === 0) {
-        studyContent.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📝</div>
-                <p>No flashcards yet.</p>
-            </div>
-        `;
+    if(flashcards.length === 0) {
+        manage.innerHTML = '<div class="empty-state">No cards to manage. Add some first!</div>';
         return;
     }
     
-    const currentCard = allCards[currentIndex];
-    
-    const html = `
-        <div class="flashcard" onclick="flipCard()">
-            <p class="flashcard-label">
-                ${isFlipped ? '✅ Answer' : '❓ Question'}
-            </p>
-            <p class="flashcard-content">
-                ${isFlipped ? currentCard.answer : currentCard.question}
-            </p>
+    manage.innerHTML = flashcards.map((card, index) => `
+        <div class="card-item">
+            <p class="question">❓ ${card.question}</p>
+            <p class="answer">✅ ${card.answer}</p>
+            <p class="meta">${card.createdDate}</p>
+            <button onclick="deleteCard(${card.id})" class="btn btn-secondary" style="width:100%;">🗑️ Delete</button>
         </div>
+    `).join('');
+}
+
+function deleteCard(id) {
+    if(confirm('Are you sure you want to delete this card?')) {
+        flashcards = flashcards.filter(card => card.id !== id);
+        favorites = favorites.filter(fav => fav !== id);
         
-        <div class="controls">
-            <button class="btn btn-secondary" 
-                    ${currentIndex === 0 ? 'disabled' : ''} 
-                    onclick="previousCard()">
-                ← Previous
-            </button>
-            <span class="counter">
-                ${currentIndex + 1} / ${allCards.length}
-            </span>
-            <button class="btn btn-secondary" 
-                    ${currentIndex === allCards.length - 1 ? 'disabled' : ''} 
-                    onclick="nextCard()">
-                Next →
-            </button>
-        </div>
-    `;
-    
-    studyContent.innerHTML = html;
+        if(currentIndex >= flashcards.length && currentIndex > 0) {
+            currentIndex--;
+        }
+        
+        saveToStorage();
+        renderManage();
+        renderStudy();
+    }
 }
 
-function renderManageView() {
-    const manageContent = document.getElementById('manageContent');
+function switchTab(tab) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     
-    if (allCards.length === 0) {
-        manageContent.innerHTML = `
-            <div class="empty-state">
-                <div class="empty-state-icon">📋</div>
-                <p>No flashcards to manage.</p>
-            </div>
-        `;
-        return;
+    document.getElementById(tab).classList.add('active');
+    document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+    
+    if(tab === 'manage') {
+        renderManage();
+    } else if(tab === 'study') {
+        renderStudy();
     }
-    
-    let cardsHtml = '<div class="card-list">';
-    
-    allCards.forEach((card, index) => {
-        cardsHtml += `
-            <div class="card-item">
-                <div class="card-item-text">
-                    <div class="card-item-question">
-                        Q${index + 1}: ${card.question}
-                    </div>
-                    <div class="card-item-answer">
-                        A: ${card.answer.substring(0, 50)}...
-                    </div>
-                </div>
-                <div>
-                    <button class="btn-danger" onclick="deleteCard(${card.id})">
-                        🗑️ Delete
-                    </button>
-                </div>
-            </div>
-        `;
-    });
-    
-    cardsHtml += '</div>';
-    manageContent.innerHTML = cardsHtml;
 }
 
 function saveToStorage() {
-    const jsonString = JSON.stringify(allCards);
-    localStorage.setItem('flashcards', jsonString);
+    localStorage.setItem('flashcards_data', JSON.stringify(flashcards));
+    localStorage.setItem('flashcards_favorites', JSON.stringify(favorites));
 }
 
 function loadFromStorage() {
-    const saved = localStorage.getItem('flashcards');
-    if (saved) {
-        allCards = JSON.parse(saved);
+    const saved = localStorage.getItem('flashcards_data');
+    const favs = localStorage.getItem('flashcards_favorites');
+    
+    if(saved) {
+        flashcards = JSON.parse(saved);
     }
-}
-
-function switchTab(tabName) {
-    document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
-    });
-    
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    document.getElementById(tabName).classList.add('active');
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+    if(favs) {
+        favorites = JSON.parse(favs);
+    }
 }
